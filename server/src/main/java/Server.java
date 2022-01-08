@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Scanner;
 
@@ -20,6 +21,10 @@ public class Server {
         Thread clientHandlerThread = new Thread(clientHandler, "clientHandlerThread");
         clientHandlerThread.start();
 
+
+
+
+
         while (true) {
             System.out.println("Введите команду Stop для остановки...");
             String msg = scanner.nextLine();
@@ -28,6 +33,8 @@ public class Server {
                 break;
             }
         }
+
+
     }
 }
 

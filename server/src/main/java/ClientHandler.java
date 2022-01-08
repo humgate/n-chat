@@ -97,6 +97,9 @@ public class ClientHandler implements Runnable {
                 SocketChannel socketChannel = serverChannel.accept();
                 System.out.println("Подключился клиент...");
 
+                //установим socketChannel в блокирующий режим чтобы поток блокировался ожидая сообщения клиента
+                socketChannel.configureBlocking(true);
+
                 //читаем что передал клиент в качестве инициирующего сообщения
                 String msg = readClientMsg(socketChannel);
 
@@ -104,6 +107,9 @@ public class ClientHandler implements Runnable {
                 if (validateConnMsg(msg)) {
                     writeMsg(msg, socketChannel);
                     registerClient(msg.split(" ")[1], socketChannel);
+                    //переводим socketChannel в неблокирующий режим для возможности работы через Selector
+                    socketChannel.configureBlocking(false);
+
                 } else {
                     writeMsg(CONNECTION_INIT_ERROR_MSG, socketChannel);
                     socketChannel.close();
@@ -116,7 +122,9 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
         }
         finally {
+            System.out.println("Закрытие всех подключений клиентов");
             closeAllConnections();
+            clientsDB.forEach((k, v) -> System.out.println(k + "." + v));
         }
     }
 }
