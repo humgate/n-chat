@@ -1,6 +1,5 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Scanner;
 
@@ -17,12 +16,16 @@ public class Server {
         serverChannel.bind(new InetSocketAddress(IP_ADDRESS, PORT));
         System.out.println("Сервер запущен...");
 
-        ClientHandler clientHandler = new ClientHandler(serverChannel);
+
+        MessageBroker msgBroker = new MessageBroker();
+        ClientHandler clientHandler = new ClientHandler(serverChannel, msgBroker);
+        msgBroker.setClientHandler(clientHandler);
+
         Thread clientHandlerThread = new Thread(clientHandler, "clientHandlerThread");
         clientHandlerThread.start();
 
-
-
+        Thread messageBrokerThread = new Thread(msgBroker, "messageBrokerThread");
+        messageBrokerThread.start();
 
 
         while (true) {

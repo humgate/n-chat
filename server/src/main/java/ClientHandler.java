@@ -1,8 +1,6 @@
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedByInterruptException;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
@@ -15,10 +13,14 @@ public class ClientHandler implements Runnable {
 
 
     private HashMap<String, SocketChannel> clientsDB = new HashMap<>();
-    ServerSocketChannel serverChannel;
 
-    ClientHandler(ServerSocketChannel serverChannel) {
+    private ServerSocketChannel serverChannel;
+    private MessageBroker msgBroker;
+
+    ClientHandler(ServerSocketChannel serverChannel, MessageBroker msgBroker)
+    {
         this.serverChannel = serverChannel;
+        this.msgBroker = msgBroker;
     }
 
 
@@ -35,6 +37,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
+
     public String readClientMsg(SocketChannel socketChannel) {
         final ByteBuffer inputBuffer = ByteBuffer.allocate(BUFFER_SIZE);
         if (!socketChannel.isConnected()) return null;
@@ -47,8 +50,6 @@ public class ClientHandler implements Runnable {
                     StandardCharsets.UTF_8);
             return msg;
         } catch (IOException e) {
-            System.out.println(socketChannel.isConnected());
-            System.out.println(socketChannel.isOpen());
             e.printStackTrace();
             return null;
         }
@@ -95,6 +96,7 @@ public class ClientHandler implements Runnable {
             while (!Thread.currentThread().isInterrupted()) {
                 // Ждем подключения клиента и получаем потоки для дальнейшей работы
                 SocketChannel socketChannel = serverChannel.accept();
+
                 System.out.println("Подключился клиент...");
 
                 //установим socketChannel в блокирующий режим чтобы поток блокировался ожидая сообщения клиента
@@ -109,7 +111,7 @@ public class ClientHandler implements Runnable {
                     registerClient(msg.split(" ")[1], socketChannel);
                     //переводим socketChannel в неблокирующий режим для возможности работы через Selector
                     socketChannel.configureBlocking(false);
-
+                    msgBroker.registerOnlineClient(socketChannel);
                 } else {
                     writeMsg(CONNECTION_INIT_ERROR_MSG, socketChannel);
                     socketChannel.close();
