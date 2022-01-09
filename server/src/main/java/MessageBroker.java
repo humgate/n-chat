@@ -23,7 +23,7 @@ public class MessageBroker implements Runnable {
         this.clientHandler = clientHandler;
     }
 
-    MessageBroker () {
+    MessageBroker() {
         try {
             selector = Selector.open();
         } catch (IOException e) {
@@ -32,59 +32,52 @@ public class MessageBroker implements Runnable {
     }
 
     public void registerOnlineClient(SocketChannel socketChannel) throws ClosedChannelException {
-      socketChannel.register(selector, SelectionKey.OP_READ);
-      selector.keys().forEach(System.out::println);
-      /*
-       * Практически выяснено, что если регистрация связи канала с селектором
-       * (socketChannel.register) происходит после первого вызова операции (selector.select()),
-       * то поток, выполняющий selector.select() блокируется и остается заблокированным
-       * в этом месте далее, даже когда возникает событие, которое должно заставить selector.select()
-       * отработать.
-       * Для того чтобы "встряхнуть" селектор в этой ситуации можно вызвать один раз selector.wakeup()
-       * после регистрация связи канала с селектором (socketChannel.register). Далее
-       * selector.select() начинает работать правильно.
-       */
-      selector.wakeup();
+        socketChannel.register(selector, SelectionKey.OP_READ);
+        selector.keys().forEach(System.out::println);
+        /*
+         * Практически выяснено, что если регистрация связи канала с селектором
+         * (socketChannel.register) происходит после первого вызова операции (selector.select()),
+         * то поток, выполняющий selector.select() блокируется и остается заблокированным
+         * в этом месте далее, даже когда возникает событие, которое должно заставить selector.select()
+         * отработать.
+         * Для того чтобы "встряхнуть" селектор в этой ситуации можно вызвать один раз selector.wakeup()
+         * после регистрация связи канала с селектором (socketChannel.register). Далее
+         * selector.select() начинает работать правильно.
+         */
+        selector.wakeup();
     }
 
 
     @Override
     public void run() {
-        while (true) {
-            System.out.println("run");
-            selector.keys().forEach(System.out::println);
-
-            try {
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                System.out.println("run");
+                selector.keys().forEach(System.out::println);
                 System.out.println(selector.select());
-                System.out.println("selector.select();");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            Set<SelectionKey> selectedKeys = selector.selectedKeys();
-            Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
 
-            while (keyIterator.hasNext()) {
-                System.out.println("keyIterator.hasNext()");
-                SelectionKey key = keyIterator.next();
+                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
+                while (keyIterator.hasNext()) {
+                    SelectionKey key = keyIterator.next();
 
-                if (key.isAcceptable()) {
-                    // a connection was accepted by a ServerSocketChannel.
-
-                } else if (key.isConnectable()) {
-                    // a connection was established with a remote server.
-
-                } else if (key.isReadable()) {
-                    // a channel is ready for reading
-                       String msg = clientHandler.readClientMsg((SocketChannel) key.channel());
-                    System.out.println(msg);
-
-                } else if (key.isWritable()) {
-                    // a channel is ready for writing
-
+                    if (key.isReadable()) {
+                        // a channel is ready for reading
+                        String msg = null;
+                        msg = clientHandler.readClientMsg((SocketChannel) key.channel());
+                        System.out.println(clientHandler.getNameBySocketChannel((SocketChannel) key.channel()) + "." + msg);
+                    }
+                    keyIterator.remove();
+                    System.out.println(keyIterator.hasNext());
+                    System.out.println("РЕМУВЕД");
                 }
-                keyIterator.remove();
+                selectedKeys.clear();
             }
-            selectedKeys.clear();
+            selector.close();
+            System.out.println(Thread.currentThread().getName() + " Selector закрыт");
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

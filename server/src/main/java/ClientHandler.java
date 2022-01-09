@@ -12,10 +12,11 @@ public class ClientHandler implements Runnable {
             "Подключение не удалось. Недопустимый формат подключения к серверу";
 
 
-    private HashMap<String, SocketChannel> clientsDB = new HashMap<>();
+    private final HashMap<String, SocketChannel> clientsDB = new HashMap<>();
+    private final HashMap<SocketChannel, String> socketsDB = new HashMap<>();
 
-    private ServerSocketChannel serverChannel;
-    private MessageBroker msgBroker;
+    private final ServerSocketChannel serverChannel;
+    private final MessageBroker msgBroker;
 
     ClientHandler(ServerSocketChannel serverChannel, MessageBroker msgBroker)
     {
@@ -31,29 +32,27 @@ public class ClientHandler implements Runnable {
     public boolean registerClient(String name, SocketChannel socketChannel) {
         if (!exists(name)) {
             clientsDB.put(name, socketChannel);
+            socketsDB.put(socketChannel, name);
             return true;
         } else {
             return false;
         }
     }
 
+    public String getNameBySocketChannel (SocketChannel socketChannel) {
+        return (socketChannel != null) ? socketsDB.get(socketChannel):null;
+    }
 
-    public String readClientMsg(SocketChannel socketChannel) {
+    public String readClientMsg(SocketChannel socketChannel) throws IOException {
         final ByteBuffer inputBuffer = ByteBuffer.allocate(BUFFER_SIZE);
         if (!socketChannel.isConnected()) return null;
         // читаем данные из канала в буфер
-        int bytesCount = 0;
-        try {
-            bytesCount = socketChannel.read(inputBuffer);
+        int bytesCount = socketChannel.read(inputBuffer);
             // переносим данные клиента из буфера в строку в нужной кодировке
             final String msg = new String(inputBuffer.array(), 0, bytesCount,
                     StandardCharsets.UTF_8);
             return msg;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
         }
-    }
 
     public void writeMsg(String msg, SocketChannel socketChannel) {
         //заносим строку в выходной буфер
@@ -88,7 +87,6 @@ public class ClientHandler implements Runnable {
             }
         });
     }
-
 
     @Override
     public void run() {
