@@ -1,11 +1,14 @@
 import java.io.IOException;
 import java.nio.channels.*;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 public class MessageBroker implements Runnable {
     private Selector selector;
     private ClientHandler clientHandler;
+    private final List<Msg> msgFeed = new ArrayList<>();
 
     public Selector getSelector() {
         return selector;
@@ -47,7 +50,6 @@ public class MessageBroker implements Runnable {
         selector.wakeup();
     }
 
-
     @Override
     public void run() {
         try {
@@ -63,9 +65,11 @@ public class MessageBroker implements Runnable {
 
                     if (key.isReadable()) {
                         // a channel is ready for reading
-                        String msg = null;
-                        msg = clientHandler.readClientMsg((SocketChannel) key.channel());
-                        System.out.println(clientHandler.getNameBySocketChannel((SocketChannel) key.channel()) + "." + msg);
+                        SocketChannel clientSocket = (SocketChannel) key.channel();
+                        String msg = clientHandler.readClientMsg(clientSocket);
+                        String clientName = clientHandler.getNameBySocketChannel(clientSocket);
+                        msgFeed.add(new Msg(clientName,msg));
+                        System.out.println(clientName + "." + msg);
                     }
                     keyIterator.remove();
                     System.out.println(keyIterator.hasNext());
@@ -73,11 +77,19 @@ public class MessageBroker implements Runnable {
                 }
                 selectedKeys.clear();
             }
-            selector.close();
-            System.out.println(Thread.currentThread().getName() + " Selector закрыт");
-
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                selector.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName() + " Selector закрыт");
+            System.out.println("-------------------------------------");
+            for (int i = 0; i < msgFeed.size(); i++) {
+                System.out.println((i + 1) + ". " + msgFeed.get(i).getClient() + ". " + msgFeed.get(i).getMessage());
+            }
         }
     }
 }
