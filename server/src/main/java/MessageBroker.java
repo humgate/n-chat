@@ -36,6 +36,7 @@ public class MessageBroker implements Runnable {
 
     public void registerOnlineClient(SocketChannel socketChannel) throws ClosedChannelException {
         socketChannel.register(selector, SelectionKey.OP_READ);
+        System.out.println(Thread.currentThread().getName()+": текущий список ключей селектора");
         selector.keys().forEach(System.out::println);
         /*
          * Практически выяснено, что если регистрация связи канала с селектором
@@ -49,12 +50,31 @@ public class MessageBroker implements Runnable {
          */
         selector.wakeup();
     }
+    
+    public void notifyConnectedClients(Msg msg) {
+        selector.keys().stream().filter(SelectionKey::isValid).forEach(k -> {
+            clientHandler.writeMsg(msg.getClient()+ ": " +msg.getMessage(),(SocketChannel) k.channel());
+        });
+        selector.keys().forEach(k -> {
+            SocketChannel socketChannel = (SocketChannel) k.channel();
+
+        });
+        
+    }
+
+//    public String identifyMessage (String msg) {
+//        return !(msg == null ||
+//                msg.split(" ").length < 2 ||
+//                !msg.split(" ")[0].equals(CONNECTION_CLIENT_MSG_PFX) ||
+//                msg.split(" ")[1].isEmpty());
+//
+//    }
 
     @Override
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                System.out.println("run");
+                System.out.println(Thread.currentThread().getName() + ": run");
                 selector.keys().forEach(System.out::println);
                 System.out.println(selector.select());
 
@@ -66,27 +86,35 @@ public class MessageBroker implements Runnable {
                     if (key.isReadable()) {
                         // a channel is ready for reading
                         SocketChannel clientSocket = (SocketChannel) key.channel();
-                        String msg = clientHandler.readClientMsg(clientSocket);
                         String clientName = clientHandler.getNameBySocketChannel(clientSocket);
-                        msgFeed.add(new Msg(clientName,msg));
-                        System.out.println(clientName + "." + msg);
+                        try {
+                            String clientMsg = clientHandler.readClientMsg(clientSocket);
+                            Msg msg = new Msg(clientName,clientMsg);
+                            msgFeed.add(msg);
+                            notifyConnectedClients(msg);
+                        } catch (IOException ex) {
+                            //убираем регистрацию в селекторе
+                            key.cancel();
+                            //проставляем в базе клиентов сокет клиента в null
+                            clientHandler.registerClient(clientName, null);
+                            System.out.println(Thread.currentThread().getName() + " : отключился клиент " + clientName);
+                        }
                     }
                     keyIterator.remove();
-                    System.out.println(keyIterator.hasNext());
-                    System.out.println("РЕМУВЕД");
                 }
                 selectedKeys.clear();
             }
         } catch (IOException e) {
+            System.out.println(Thread.currentThread().getName() +": Исключение при попытке selector.select() ");
             e.printStackTrace();
         } finally {
             try {
                 selector.close();
+                System.out.println(Thread.currentThread().getName() + ": selector закрыт");
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println(Thread.currentThread().getName() + " Selector закрыт");
-            System.out.println("-------------------------------------");
+            System.out.println(Thread.currentThread().getName() + ": cписок сообщений чата");
             for (int i = 0; i < msgFeed.size(); i++) {
                 System.out.println((i + 1) + ". " + msgFeed.get(i).getClient() + ". " + msgFeed.get(i).getMessage());
             }

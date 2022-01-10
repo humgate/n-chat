@@ -15,7 +15,6 @@ public class Server {
         serverChannel.bind(new InetSocketAddress(IP_ADDRESS, PORT));
         System.out.println("Сервер запущен...");
 
-
         MessageBroker msgBroker = new MessageBroker();
         ClientHandler clientHandler = new ClientHandler(serverChannel, msgBroker);
         msgBroker.setClientHandler(clientHandler);
@@ -27,7 +26,7 @@ public class Server {
         messageBrokerThread.start();
 
         while (true) {
-            System.out.println("Введите команду Stop для остановки...");
+            System.out.println("Введите команду Stop для остановки сервера...");
             String msg = scanner.nextLine();
             if ("Stop".equals(msg)) {
                 clientHandlerThread.interrupt();

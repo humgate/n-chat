@@ -3,17 +3,18 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 
 public class ClientHandler implements Runnable {
     static final int BUFFER_SIZE = 2 << 20;
     static final String CONNECTION_CLIENT_MSG_PFX = "Connect";
     static final String CONNECTION_INIT_ERROR_MSG =
-            "Подключение не удалось. Недопустимый формат подключения к серверу";
+            "Подключение не удалось. Клиент с указанным именем уже в чате или недопустимый формат подключения";
 
 
     private final HashMap<String, SocketChannel> clientsDB = new HashMap<>();
-    private final HashMap<SocketChannel, String> socketsDB = new HashMap<>();
 
     private final ServerSocketChannel serverChannel;
     private final MessageBroker msgBroker;
@@ -29,18 +30,20 @@ public class ClientHandler implements Runnable {
         return clientsDB.containsKey(name);
     }
 
-    public boolean registerClient(String name, SocketChannel socketChannel) {
-        if (!exists(name)) {
+    public void registerClient(String name, SocketChannel socketChannel) {
             clientsDB.put(name, socketChannel);
-            socketsDB.put(socketChannel, name);
-            return true;
-        } else {
-            return false;
-        }
     }
 
-    public String getNameBySocketChannel (SocketChannel socketChannel) {
-        return (socketChannel != null) ? socketsDB.get(socketChannel):null;
+    public String getNameBySocketChannel(SocketChannel socketChannel) {
+        Iterator<Map.Entry<String, SocketChannel>> iter = clientsDB.entrySet().iterator();
+        String name = null;
+        while (iter.hasNext()) {
+            Map.Entry<String, SocketChannel> entry = iter.next();
+            if (entry.getValue() != null && entry.getValue().equals(socketChannel)) {
+                name = entry.getKey();
+            }
+        }
+        return name;
     }
 
     public String readClientMsg(SocketChannel socketChannel) throws IOException {
@@ -71,17 +74,20 @@ public class ClientHandler implements Runnable {
         return !(msg == null ||
                 msg.split(" ").length < 2 ||
                 !msg.split(" ")[0].equals(CONNECTION_CLIENT_MSG_PFX) ||
-                msg.split(" ")[1].isEmpty());
+                msg.split(" ")[1].isEmpty() ||
+                clientsDB.containsKey(msg.split(" ")[1]));
     }
 
-    public void allConnectedClients() {
+    public void displayConnectedClients() {
         clientsDB.entrySet().forEach(System.out::println);
     }
 
     public void closeAllConnections() {
         clientsDB.forEach((k, v) -> {
             try {
-                v.close();
+                if (v!=null) {
+                    v.close();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -95,7 +101,7 @@ public class ClientHandler implements Runnable {
                 // Ждем подключения клиента и получаем потоки для дальнейшей работы
                 SocketChannel socketChannel = serverChannel.accept();
 
-                System.out.println("Подключился клиент...");
+                System.out.println(Thread.currentThread().getName() + ": Подключился клиент...");
 
                 //установим socketChannel в блокирующий режим чтобы поток блокировался ожидая сообщения клиента
                 socketChannel.configureBlocking(true);
@@ -105,26 +111,28 @@ public class ClientHandler implements Runnable {
 
                 //первое сообщение от клиента при коннекте должно содержать "Connect" и через пробел имя
                 if (validateConnMsg(msg)) {
-                    writeMsg(msg, socketChannel);
-                    registerClient(msg.split(" ")[1], socketChannel);
+                    String clientName = msg.split(" ")[1];
+                    writeMsg(clientName + " подключился", socketChannel);
+                    registerClient(clientName, socketChannel);
                     //переводим socketChannel в неблокирующий режим для возможности работы через Selector
                     socketChannel.configureBlocking(false);
+                    //регистрируем ключ в селекторе
                     msgBroker.registerOnlineClient(socketChannel);
                 } else {
                     writeMsg(CONNECTION_INIT_ERROR_MSG, socketChannel);
                     socketChannel.close();
                 }
-                allConnectedClients();
+                displayConnectedClients();
             }
         } catch (ClosedByInterruptException e) {
-            System.out.println(Thread.currentThread().getName() + " получил команду interrupt");
+            System.out.println(Thread.currentThread().getName() + ": получена команда interrupt");
         } catch (IOException e) {
+            System.out.println(e.getMessage());
             e.printStackTrace();
         }
         finally {
-            System.out.println("Закрытие всех подключений клиентов");
+            System.out.println(Thread.currentThread().getName()+ ": закрытие всех подключений клиентов");
             closeAllConnections();
-            clientsDB.forEach((k, v) -> System.out.println(k + "." + v));
         }
     }
 }
