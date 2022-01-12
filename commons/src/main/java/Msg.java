@@ -1,6 +1,10 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Msg {
     private String client;
     private String message;
+    LocalDateTime stamp;
 
     public String getClient() {
         return client;
@@ -18,13 +22,14 @@ public class Msg {
         this.message = message;
     }
 
-    public Msg(String client, String message) {
+    public Msg(String client, String message, LocalDateTime stamp) {
         this.client = client;
         this.message = message;
+        this.stamp = stamp;
     }
 
     @Override
     public String toString() {
-        return client + " "+ message;
+        return stamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)+ ": "+ client + ": "+ message;
     }
 }

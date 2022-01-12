@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.nio.channels.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -62,14 +63,6 @@ public class MessageBroker implements Runnable {
         
     }
 
-//    public String identifyMessage (String msg) {
-//        return !(msg == null ||
-//                msg.split(" ").length < 2 ||
-//                !msg.split(" ")[0].equals(CONNECTION_CLIENT_MSG_PFX) ||
-//                msg.split(" ")[1].isEmpty());
-//
-//    }
-
     @Override
     public void run() {
         try {
@@ -89,8 +82,9 @@ public class MessageBroker implements Runnable {
                         String clientName = clientHandler.getNameBySocketChannel(clientSocket);
                         try {
                             String clientMsg = clientHandler.readClientMsg(clientSocket);
-                            Msg msg = new Msg(clientName,clientMsg);
+                            Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
                             msgFeed.add(msg);
+                            Logger.writeMsgToFile(msg);
                             notifyConnectedClients(msg);
                         } catch (IOException ex) {
                             //убираем регистрацию в селекторе
