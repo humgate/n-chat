@@ -4,8 +4,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Scanner;
 
@@ -14,10 +12,11 @@ public class Client {
     static final short PORT = 23334;
     static final int BUFFER_SIZE = 2 << 8;
     static SocketChannel socketChannel = null;
-    String name;
+    private String name;
 
 
     public static void main(String[] args) throws IOException {
+        //создаем фолдер для лога если его еще нет
         Logger.createLogDir(Logger.CLIENT_LOG_FILE);
         Scanner scanner = new Scanner(System.in);
         Client client = new Client();
@@ -40,7 +39,7 @@ public class Client {
             /*
              * Зачитывание и отображение ответов сервера сделано в отдельном потоке, который
              * получает команду interrupt из основного потока если пользователь решил закончить работу
-             * введя end.
+             * введя exit.
              */
             Thread readerThread = new Thread(() -> {
                 String threadName = Thread.currentThread().getName();
@@ -51,9 +50,10 @@ public class Client {
                         if (bytesCount == -1) break;
                         String msg = new String(inputBuffer.array(), 0, bytesCount,
                                 StandardCharsets.UTF_8).trim();
-                        if (!msg.split(":")[0].equals(client.name)) {
+
+                        if (!msg.startsWith(client.name)) {
                             System.out.print(msg + "\n");
-                            Logger.writeStringToFile(Logger.CLIENT_LOG_FILE,msg);
+                            Logger.writeStringToFile(Logger.CLIENT_LOG_FILE, msg);
                         }
                         inputBuffer.clear();
                     } catch (ClosedByInterruptException e) {

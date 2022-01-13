@@ -8,14 +8,13 @@ import java.util.Map;
 
 
 public class ClientHandler implements Runnable {
-    static final int BUFFER_SIZE = 2 << 20;
+    static final int BUFFER_SIZE = 2 << 8;
     static final String CONNECTION_CLIENT_MSG_PFX = "Connect";
     static final String CONNECTION_INIT_ERROR_MSG =
             "Подключение не удалось. Клиент с указанным именем уже в чате или недопустимый формат подключения";
 
 
     private final HashMap<String, SocketChannel> clientsDB = new HashMap<>();
-
     private final ServerSocketChannel serverChannel;
     private final MessageBroker msgBroker;
 
@@ -23,11 +22,6 @@ public class ClientHandler implements Runnable {
     {
         this.serverChannel = serverChannel;
         this.msgBroker = msgBroker;
-    }
-
-
-    public boolean exists(String name) {
-        return clientsDB.containsKey(name);
     }
 
     public void registerClient(String name, SocketChannel socketChannel) {
@@ -64,7 +58,7 @@ public class ClientHandler implements Runnable {
         if (!socketChannel.isConnected()) return;
         //пишем из буфера в канал
         try {
-            int bytesCount = socketChannel.write(outputBuffer);
+            socketChannel.write(outputBuffer);
         } catch (IOException e) {
             e.printStackTrace();
         }

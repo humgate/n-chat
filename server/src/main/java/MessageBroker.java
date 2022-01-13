@@ -8,12 +8,10 @@ import java.util.Set;
 
 public class MessageBroker implements Runnable {
     private Selector selector;
-    private ClientHandler clientHandler;
-    private final List<Msg> msgFeed = new ArrayList<>();
 
-    public Selector getSelector() {
-        return selector;
-    }
+    private ClientHandler clientHandler;
+
+    //private final List<Msg> msgFeed = new ArrayList<>();
 
     public static void main(String[] args) {
 
@@ -83,7 +81,7 @@ public class MessageBroker implements Runnable {
                         try {
                             String clientMsg = clientHandler.readClientMsg(clientSocket);
                             Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
-                            msgFeed.add(msg);
+                            //msgFeed.add(msg);
                             Logger.writeMsgToFile(Logger.SERVER_LOG_FILE,msg);
                             notifyConnectedClients(msg);
                         } catch (IOException ex) {
@@ -108,10 +106,10 @@ public class MessageBroker implements Runnable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println(Thread.currentThread().getName() + ": список сообщений чата данной сессии:");
-            for (int i = 0; i < msgFeed.size(); i++) {
-                System.out.println((i + 1) + ". " + msgFeed.get(i).getClient() + ". " + msgFeed.get(i).getMessage());
-            }
+//            System.out.println(Thread.currentThread().getName() + ": список сообщений чата данной сессии:");
+//            for (int i = 0; i < msgFeed.size(); i++) {
+//                System.out.println((i + 1) + ". " + msgFeed.get(i).getClient() + ". " + msgFeed.get(i).getMessage());
+//            }
         }
     }
 }
