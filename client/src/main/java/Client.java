@@ -4,6 +4,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.Scanner;
 
 public class Client {
@@ -14,10 +17,9 @@ public class Client {
     String name;
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        Logger.createLogDir(Logger.CLIENT_LOG_FILE);
         Scanner scanner = new Scanner(System.in);
-        String message = null;
-
         Client client = new Client();
 
         // Определяем сокет сервера
@@ -42,7 +44,7 @@ public class Client {
              */
             Thread readerThread = new Thread(() -> {
                 String threadName = Thread.currentThread().getName();
-                int bytesCount = 0;
+                int bytesCount;
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
                         bytesCount = socketChannel.read(inputBuffer);
@@ -51,6 +53,7 @@ public class Client {
                                 StandardCharsets.UTF_8).trim();
                         if (!msg.split(":")[0].equals(client.name)) {
                             System.out.print(msg + "\n");
+                            Logger.writeStringToFile(Logger.CLIENT_LOG_FILE,msg);
                         }
                         inputBuffer.clear();
                     } catch (ClosedByInterruptException e) {
@@ -64,24 +67,26 @@ public class Client {
             readerThread.start();
 
             while (true) {
+                String message = null;
                 if (client.name == null) {
                     System.out.println("Введите имя: ");
                     client.name = scanner.nextLine();
                     outputBuffer = ByteBuffer.wrap(("Connect " + client.name).getBytes(StandardCharsets.UTF_8));
                 } else {
                     message = scanner.nextLine();
-                    outputBuffer = ByteBuffer.wrap((message).getBytes(StandardCharsets.UTF_8));
+                    if (!message.equals("exit")) {
+                        outputBuffer = ByteBuffer.wrap((message).getBytes(StandardCharsets.UTF_8));
+                        Logger.writeStringToFile(
+                                Logger.CLIENT_LOG_FILE,LocalDateTime.now() + ": " + client.name + ": "+ message);
+                    } else {
+                        readerThread.interrupt();
+                        socketChannel.close();
+                        break;
+                    }
                 }
-
-                if ("exit".equals(message)) {
-                    readerThread.interrupt();
-                    socketChannel.close();
-                    break;
-                }
-
                 //пишем в канал
-                int writtenBytes = socketChannel.write(outputBuffer);
-               }
+                socketChannel.write(outputBuffer);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

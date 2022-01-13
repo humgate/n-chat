@@ -84,7 +84,7 @@ public class MessageBroker implements Runnable {
                             String clientMsg = clientHandler.readClientMsg(clientSocket);
                             Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
                             msgFeed.add(msg);
-                            Logger.writeMsgToFile(msg);
+                            Logger.writeMsgToFile(Logger.SERVER_LOG_FILE,msg);
                             notifyConnectedClients(msg);
                         } catch (IOException ex) {
                             //убираем регистрацию в селекторе
@@ -108,7 +108,7 @@ public class MessageBroker implements Runnable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println(Thread.currentThread().getName() + ": cписок сообщений чата");
+            System.out.println(Thread.currentThread().getName() + ": список сообщений чата данной сессии:");
             for (int i = 0; i < msgFeed.size(); i++) {
                 System.out.println((i + 1) + ". " + msgFeed.get(i).getClient() + ". " + msgFeed.get(i).getMessage());
             }
