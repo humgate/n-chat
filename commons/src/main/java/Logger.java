@@ -4,9 +4,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 public class Logger {
-    static final String SERVER_LOG_FILE = "./serverlog/file.log";
-    static final String CLIENT_LOG_FILE = "./clientlog/file.log";
-
     public static boolean writeMsgToFile(String logfile,Msg msg) {
         try {
                  Files.writeString(

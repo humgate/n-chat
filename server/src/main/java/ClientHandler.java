@@ -8,11 +8,8 @@ import java.util.Map;
 
 
 public class ClientHandler implements Runnable {
-    static final int BUFFER_SIZE = 2 << 8;
-    static final String CONNECTION_CLIENT_MSG_PFX = "Connect";
     static final String CONNECTION_INIT_ERROR_MSG =
             "Подключение не удалось. Клиент с указанным именем уже в чате или недопустимый формат подключения";
-
 
     private final HashMap<String, SocketChannel> clientsDB = new HashMap<>();
     private final ServerSocketChannel serverChannel;
@@ -41,7 +38,7 @@ public class ClientHandler implements Runnable {
     }
 
     public String readClientMsg(SocketChannel socketChannel) throws IOException {
-        final ByteBuffer inputBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+        final ByteBuffer inputBuffer = ByteBuffer.allocate(Config.BUFFER_SIZE);
         if (!socketChannel.isConnected()) return null;
         // читаем данные из канала в буфер
         int bytesCount = socketChannel.read(inputBuffer);
@@ -67,7 +64,7 @@ public class ClientHandler implements Runnable {
     public boolean validateConnMsg(String msg) {
         return !(msg == null ||
                 msg.split(" ").length < 2 ||
-                !msg.split(" ")[0].equals(CONNECTION_CLIENT_MSG_PFX) ||
+                !msg.split(" ")[0].equals(Config.CLIENT_CONNECTION_MSG_PFX) ||
                 msg.split(" ")[1].isEmpty() ||
                 clientsDB.containsKey(msg.split(" ")[1]));
     }

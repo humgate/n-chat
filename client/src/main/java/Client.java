@@ -8,21 +8,17 @@ import java.time.LocalDateTime;
 import java.util.Scanner;
 
 public class Client {
-    static final String IP_ADDRESS = "localhost";
-    static final short PORT = 23334;
-    static final int BUFFER_SIZE = 2 << 8;
     static SocketChannel socketChannel = null;
     private String name;
 
-
     public static void main(String[] args) throws IOException {
         //создаем фолдер для лога если его еще нет
-        Logger.createLogDir(Logger.CLIENT_LOG_FILE);
+        Logger.createLogDir(Config.CLIENT_LOG_FILE);
         Scanner scanner = new Scanner(System.in);
         Client client = new Client();
 
         // Определяем сокет сервера
-        InetSocketAddress socketAddress = new InetSocketAddress(IP_ADDRESS, PORT);
+        InetSocketAddress socketAddress = new InetSocketAddress(Config.IP_ADDRESS, Config.PORT);
 
         try {
             socketChannel = SocketChannel.open();
@@ -33,7 +29,7 @@ public class Client {
             socketChannel.configureBlocking(true);
 
             // Определяем буфер для получения и отправки данных
-            final ByteBuffer inputBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+            final ByteBuffer inputBuffer = ByteBuffer.allocate(Config.BUFFER_SIZE);
             ByteBuffer outputBuffer;
 
             /*
@@ -53,7 +49,7 @@ public class Client {
 
                         if (!msg.startsWith(client.name)) {
                             System.out.print(msg + "\n");
-                            Logger.writeStringToFile(Logger.CLIENT_LOG_FILE, msg);
+                            Logger.writeStringToFile(Config.CLIENT_LOG_FILE, msg);
                         }
                         inputBuffer.clear();
                     } catch (ClosedByInterruptException e) {
@@ -77,7 +73,7 @@ public class Client {
                     if (!message.equals("exit")) {
                         outputBuffer = ByteBuffer.wrap((message).getBytes(StandardCharsets.UTF_8));
                         Logger.writeStringToFile(
-                                Logger.CLIENT_LOG_FILE,LocalDateTime.now() + ": " + client.name + ": "+ message);
+                                Config.CLIENT_LOG_FILE,LocalDateTime.now() + ": " + client.name + ": "+ message);
                     } else {
                         readerThread.interrupt();
                         socketChannel.close();

@@ -1,22 +1,17 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Scanner;
 
-
 public class Server {
-    static final String IP_ADDRESS = "localhost";
-    static final short PORT = 23334;
     static Scanner scanner = new Scanner(System.in);
 
 
     public static void main(String[] args) throws IOException {
-        Logger.createLogDir(Logger.SERVER_LOG_FILE);
+        Logger.createLogDir(Config.SERVER_LOG_FILE);
         // Занимаем порт, определяя серверный сокет
         final ServerSocketChannel serverChannel = ServerSocketChannel.open();
-        serverChannel.bind(new InetSocketAddress(IP_ADDRESS, PORT));
+        serverChannel.bind(new InetSocketAddress(Config.IP_ADDRESS, Config.PORT));
         System.out.println("Сервер запущен...");
 
         MessageBroker msgBroker = new MessageBroker();

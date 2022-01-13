@@ -8,18 +8,7 @@ import java.util.Set;
 
 public class MessageBroker implements Runnable {
     private Selector selector;
-
     private ClientHandler clientHandler;
-
-    //private final List<Msg> msgFeed = new ArrayList<>();
-
-    public static void main(String[] args) {
-
-    }
-
-    public ClientHandler getClientHandler() {
-        return clientHandler;
-    }
 
     public void setClientHandler(ClientHandler clientHandler) {
         this.clientHandler = clientHandler;
@@ -54,12 +43,7 @@ public class MessageBroker implements Runnable {
         selector.keys().stream().filter(SelectionKey::isValid).forEach(k -> {
             clientHandler.writeMsg(msg.getClient()+ ": " +msg.getMessage(),(SocketChannel) k.channel());
         });
-        selector.keys().forEach(k -> {
-            SocketChannel socketChannel = (SocketChannel) k.channel();
-
-        });
-        
-    }
+   }
 
     @Override
     public void run() {
@@ -82,7 +66,7 @@ public class MessageBroker implements Runnable {
                             String clientMsg = clientHandler.readClientMsg(clientSocket);
                             Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
                             //msgFeed.add(msg);
-                            Logger.writeMsgToFile(Logger.SERVER_LOG_FILE,msg);
+                            Logger.writeMsgToFile(Config.SERVER_LOG_FILE,msg);
                             notifyConnectedClients(msg);
                         } catch (IOException ex) {
                             //убираем регистрацию в селекторе
@@ -106,10 +90,6 @@ public class MessageBroker implements Runnable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-//            System.out.println(Thread.currentThread().getName() + ": список сообщений чата данной сессии:");
-//            for (int i = 0; i < msgFeed.size(); i++) {
-//                System.out.println((i + 1) + ". " + msgFeed.get(i).getClient() + ". " + msgFeed.get(i).getMessage());
-//            }
         }
     }
 }
