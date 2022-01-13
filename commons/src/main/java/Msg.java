@@ -2,24 +2,16 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Msg {
-    private String client;
-    private String message;
-    LocalDateTime stamp;
+    private final String client;
+    private final String message;
+    private final LocalDateTime stamp;
 
     public String getClient() {
         return client;
     }
 
-    public void setClient(String client) {
-        this.client = client;
-    }
-
     public String getMessage() {
         return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
     }
 
     public Msg(String client, String message, LocalDateTime stamp) {
