@@ -6,7 +6,6 @@ import java.util.Scanner;
 public class Server {
     static Scanner scanner = new Scanner(System.in);
 
-
     public static void main(String[] args) throws IOException {
         Logger.createLogDir(Config.SERVER_LOG_FILE);
         // Занимаем порт, определяя серверный сокет
@@ -25,7 +24,7 @@ public class Server {
         messageBrokerThread.start();
 
         while (true) {
-            System.out.println("Введите команду Stop для остановки сервера...");
+            System.out.println("Введите команду stop для остановки сервера...");
             String msg = scanner.nextLine();
             if ("stop".equals(msg)) {
                 clientHandlerThread.interrupt();

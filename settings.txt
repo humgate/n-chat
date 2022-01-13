@@ -4,4 +4,3 @@ buffer_size 4096
 server_log_file ./serverlog/file.log
 client_log_file ./clientlog/file.log
 client_connection_msg_pfx Connect
-
