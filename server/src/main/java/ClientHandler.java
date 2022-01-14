@@ -20,10 +20,7 @@ public class ClientHandler implements Runnable {
      * так сделано из-за экономии времени */
     private final ServerSocketChannel serverChannel;
 
-    /* По хорошему вместо этого поля нужно сделать реализацию паттерна singletone,
-     * так сделано из-за экономии времени */
     private final MessageBroker msgBroker;
-
 
     ClientHandler(ServerSocketChannel serverChannel, MessageBroker msgBroker)
     {

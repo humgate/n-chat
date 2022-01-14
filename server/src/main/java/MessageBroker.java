@@ -4,6 +4,9 @@ import java.time.LocalDateTime;
 import java.util.Iterator;
 import java.util.Set;
 
+/**
+ * Выполняет работу с сообщениями от клиентов
+ */
 public class MessageBroker implements Runnable {
     private Selector selector;
     private ClientHandler clientHandler;
@@ -12,6 +15,7 @@ public class MessageBroker implements Runnable {
         this.clientHandler = clientHandler;
     }
 
+    //в конструкторе открываем селектор
     MessageBroker() {
         try {
             selector = Selector.open();
@@ -20,6 +24,12 @@ public class MessageBroker implements Runnable {
         }
     }
 
+    /**
+     * Регистрирует канал (клиента) как активный для прослушивания (регистрирует канал в селекторе).
+     * Эта связь обеспечивает прослушивание всех зарегистрированных каналов на появление в них сообщений от клиентов
+     * @param socketChannel - канал
+     * @throws ClosedChannelException
+     */
     public void registerOnlineClient(SocketChannel socketChannel) throws ClosedChannelException {
         socketChannel.register(selector, SelectionKey.OP_READ);
         System.out.println(Thread.currentThread().getName()+": текущий список ключей селектора");
@@ -36,13 +46,23 @@ public class MessageBroker implements Runnable {
          */
         selector.wakeup();
     }
-    
+
+    /**
+     * Рассылает всем онлайн (SelectionKey::isValid) клиентам переданное сообщение
+     * @param msg - Сообщение
+     */
     public void notifyConnectedClients(Msg msg) {
         selector.keys().stream().filter(SelectionKey::isValid).forEach(k -> {
             clientHandler.writeMsg(msg.getClient()+ ": " +msg.getMessage(),(SocketChannel) k.channel());
         });
    }
 
+    /**
+     * "Слушает" список онлайн клиентов, при получении сообщения от клиента записывает его в серверный лог и
+     * рассылает его всем онлайн клиентам. Обнаруживает отключение клиента, и обновляет статус подключения
+     * клиента как у себя, так и в ClientHandler.
+     * Метод оформлен как реализация Run() для того, чтобы его удобно было запустить в отдельном потоке
+     */
     @Override
     public void run() {
         try {
@@ -63,7 +83,6 @@ public class MessageBroker implements Runnable {
                         try {
                             String clientMsg = clientHandler.readClientMsg(clientSocket);
                             Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
-                            //msgFeed.add(msg);
                             Logger.writeMsgToFile(Config.SERVER_LOG_FILE,msg);
                             notifyConnectedClients(msg);
                         } catch (IOException ex) {
