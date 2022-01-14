@@ -1,9 +1,15 @@
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Реализует сообщение клиента
+ */
 public class Msg {
+    //имя в чате
     private final String client;
+    //текст сообщения
     private final String message;
+    //таймстемп сообщения
     private final LocalDateTime stamp;
 
     public String getClient() {
