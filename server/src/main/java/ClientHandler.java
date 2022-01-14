@@ -6,14 +6,24 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-
+/**
+ * Выполняет подключение клиентов к чату. Обеспечивает нужные операции по работе с подключившимися
+ * к чату клиентами.
+ */
 public class ClientHandler implements Runnable {
     static final String CONNECTION_INIT_ERROR_MSG =
             "Подключение не удалось. Клиент с указанным именем уже в чате или недопустимый формат подключения";
-
+    //база подключившихся клиентов в мапе k=Имя клиента, v=Скоетканал клиента
     private final HashMap<String, SocketChannel> clientsDB = new HashMap<>();
+
+    /* По хорошему вместо этого поля нужно сделать реализацию паттерна singletone,
+     * так сделано из-за экономии времени */
     private final ServerSocketChannel serverChannel;
+
+    /* По хорошему вместо этого поля нужно сделать реализацию паттерна singletone,
+     * так сделано из-за экономии времени */
     private final MessageBroker msgBroker;
+
 
     ClientHandler(ServerSocketChannel serverChannel, MessageBroker msgBroker)
     {
@@ -21,10 +31,21 @@ public class ClientHandler implements Runnable {
         this.msgBroker = msgBroker;
     }
 
+    /**
+     * Регистрирует в базе онлайн клиентов нового клиента, а так же обновляет запись клиента
+     * (канал) у клиента если клиент с переданным именем уже есть
+     * @param name - имя клиента
+     * @param socketChannel - его канал
+     */
     public void registerClient(String name, SocketChannel socketChannel) {
             clientsDB.put(name, socketChannel);
     }
 
+    /**
+     * Возвращает имя онлайн клиента по его каналу
+     * @param socketChannel - канал клиента
+     * @return - имя клиента
+     */
     public String getNameBySocketChannel(SocketChannel socketChannel) {
         Iterator<Map.Entry<String, SocketChannel>> iter = clientsDB.entrySet().iterator();
         String name = null;
@@ -37,6 +58,12 @@ public class ClientHandler implements Runnable {
         return name;
     }
 
+    /**
+     * Читает строку из канала клиента
+     * @param socketChannel - канал клиента
+     * @return строка переданная клиентом
+     * @throws IOException
+     */
     public String readClientMsg(SocketChannel socketChannel) throws IOException {
         final ByteBuffer inputBuffer = ByteBuffer.allocate(Config.BUFFER_SIZE);
         if (!socketChannel.isConnected()) return null;
@@ -48,6 +75,11 @@ public class ClientHandler implements Runnable {
             return msg;
         }
 
+    /**
+     * Записывает строку в канал клиента
+     * @param msg - строка
+     * @param socketChannel - канал клиента
+     */
     public void writeMsg(String msg, SocketChannel socketChannel) {
         //заносим строку в выходной буфер
         final ByteBuffer outputBuffer = ByteBuffer.wrap((msg).getBytes(StandardCharsets.UTF_8));
@@ -61,6 +93,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Проверяет, является ли строка корректным сообщением клиента о подключении к чату
+     * @param msg - строка для проверки
+     * @return да или нет
+     */
     public boolean validateConnMsg(String msg) {
         return !(msg == null ||
                 msg.split(" ").length < 2 ||
@@ -69,10 +106,16 @@ public class ClientHandler implements Runnable {
                 clientsDB.containsKey(msg.split(" ")[1]));
     }
 
+    /**
+     * Выводит в System.out сервера список всех клиентов подключавшихся в данной сессии сервера
+     */
     public void displayConnectedClients() {
         clientsDB.entrySet().forEach(System.out::println);
     }
 
+    /**
+     * Закрывает все подключения клиентов
+     */
     public void closeAllConnections() {
         clientsDB.forEach((k, v) -> {
             try {
@@ -85,6 +128,12 @@ public class ClientHandler implements Runnable {
         });
     }
 
+    /**
+     * В цикле ожидает подключения новых клиентов, регистрирует корректно подключившегося клиента
+     * в своей "базе" клиентов и передает его данные в MessageBroker, который уже занимается
+     * обработкой сообщений клиентов.
+     * Метод оформлен как реализация Run() для того, чтобы его удобно было запустить в отдельном потоке
+     */
     @Override
     public void run() {
         try {
