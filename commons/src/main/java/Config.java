@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.HashMap;
 
 /**
- * Зачитывает в блоке статической инициализации и хранит в себе в константах значения
- * параметров приложения
+ * Зачитывает параметры приложения из файла настроек в блоке статической инициализации
+ * и хранит в себе в константах значения параметров приложения
  */
 public class Config {
     //файл настроек
@@ -45,6 +45,7 @@ public class Config {
             CLIENT_CONNECTION_MSG_PFX = keyValues.get("client_connection_msg_pfx");
 
         } catch (NumberFormatException | IOException | NullPointerException e ) {
+            //Если что-то не прочиталось или не распарсилось - выходим
             System.out.println("Ошибка чтения настроек приложения из файла настроек. Завершение работы");
             throw new RuntimeException(e.getMessage());
         }
