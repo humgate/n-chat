@@ -13,7 +13,7 @@ import java.util.Map;
 public class ClientHandler implements Runnable {
     static final String CONNECTION_INIT_ERROR_MSG =
             "Подключение не удалось. Клиент с указанным именем уже в чате или недопустимый формат подключения";
-    //база подключившихся клиентов в мапе k=Имя клиента, v=Скоетканал клиента
+    //база подключившихся клиентов в мапе k=имя клиента, v=канал клиента
     private final HashMap<String, SocketChannel> clientsDB = new HashMap<>();
 
     /* По хорошему вместо этого поля нужно сделать реализацию паттерна singletone,

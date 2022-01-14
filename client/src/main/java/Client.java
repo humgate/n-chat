@@ -7,6 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Scanner;
 
+/**
+ * Client
+ */
 public class Client {
     static SocketChannel socketChannel = null;
     private String name;
@@ -62,6 +65,11 @@ public class Client {
             }, "readerThread");
             readerThread.start();
 
+            /*
+            * В основном потоке сначала формируем первое сообщение от клиента в формате сообщения
+            * подключения и отправляем на сервер. Затем начинаем в цикле зачитывать ввод пользователя с
+            * консоли и отправляем на сервер уже как сообщения в чат
+             */
             while (true) {
                 String message = null;
                 if (client.name == null) {
