@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
@@ -26,6 +27,9 @@ public class Config {
         String line;
 
         try {
+            File currentDirectory = new File(new File(".").getAbsolutePath());
+            System.out.println(currentDirectory.getCanonicalPath());
+
             br = new BufferedReader(new FileReader(SETTINGS_FILE));
             while ((line = br.readLine()) != null) {
                 keyValues.put(line.split(" ")[0], line.split(" ")[1]);
@@ -47,8 +51,13 @@ public class Config {
 
         } catch (NumberFormatException | IOException | NullPointerException e ) {
             //Если что-то не прочиталось или не распарсилось - выходим
-            System.out.println("Ошибка чтения настроек приложения из файла настроек. Завершение работы");
+            System.out.println(Thread.currentThread().getName()+
+                    ": Ошибка чтения настроек приложения из файла настроек. Завершение работы");
             throw new RuntimeException(e.getMessage());
         }
     }
+
+
+
+
 }

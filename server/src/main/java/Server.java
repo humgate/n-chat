@@ -14,7 +14,7 @@ public class Server {
         // Занимаем порт, определяя серверный сокет
         final ServerSocketChannel serverChannel = ServerSocketChannel.open();
         serverChannel.bind(new InetSocketAddress(Config.IP_ADDRESS, Config.PORT));
-        System.out.println("Сервер запущен...");
+        System.out.println(Thread.currentThread().getName()+": Сервер запущен...");
 
         //Создаем необходимые Runnables
         MessageBroker msgBroker = new MessageBroker();
@@ -22,13 +22,13 @@ public class Server {
         msgBroker.setClientHandler(clientHandler);
 
         //запускаем потоки
-        Thread clientHandlerThread = new Thread(clientHandler, "clientHandlerThread");
+        Thread clientHandlerThread = new Thread(clientHandler, "clientHandler");
         clientHandlerThread.start();
-        Thread messageBrokerThread = new Thread(msgBroker, "messageBrokerThread");
+        Thread messageBrokerThread = new Thread(msgBroker, "messageBroker");
         messageBrokerThread.start();
 
         while (true) {
-            System.out.println("Введите команду stop для остановки сервера...");
+            System.out.println(Thread.currentThread().getName()+ ": Введите команду stop для остановки сервера...");
             String msg = scanner.nextLine();
             if ("stop".equals(msg)) {
                 clientHandlerThread.interrupt();

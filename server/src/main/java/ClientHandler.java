@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Выполняет подключение клиентов к чату. Обеспечивает нужные операции по работе с подключившимися
@@ -105,7 +106,7 @@ public class ClientHandler implements Runnable {
     /**
      * Выводит в System.out сервера список всех клиентов подключавшихся в данной сессии сервера
      */
-    public void displayConnectedClients() {
+    public void displayClients() {
         clientsDB.entrySet().forEach(System.out::println);
     }
 
@@ -126,6 +127,41 @@ public class ClientHandler implements Runnable {
     }
 
     /**
+     * Ожидает подключения нового клиента, регистрирует корректно обратившегося клиента
+     * в своей "базе" клиентов и передает его данные в MessageBroker, который уже занимается
+     * обработкой сообщений клиентов.
+     * @throws IOException
+     */
+    public void handleClient() throws IOException {
+        // Ждем подключения клиента и получаем потоки для дальнейшей работы
+        SocketChannel socketChannel = serverChannel.accept();
+
+        System.out.println(Thread.currentThread().getName() + ": Подключился клиент...");
+
+        //установим socketChannel в блокирующий режим чтобы поток блокировался ожидая сообщения клиента
+        socketChannel.configureBlocking(true);
+
+        //читаем что передал клиент в качестве инициирующего сообщения
+        String msg = readClientMsg(socketChannel);
+
+        //первое сообщение от клиента при конекте должно содержать "Connect" и через пробел имя
+        if (validateConnMsg(msg)) {
+            String clientName = msg.split(" ")[1];
+            writeMsg(clientName + " подключился", socketChannel);
+            registerClient(clientName, socketChannel);
+            //переводим socketChannel в неблокирующий режим для возможности работы через Selector
+            socketChannel.configureBlocking(false);
+            //регистрируем ключ в селекторе
+            msgBroker.registerOnlineClient(socketChannel);
+        } else {
+            writeMsg(CONNECTION_INIT_ERROR_MSG, socketChannel);
+            socketChannel.close();
+        }
+        displayClients();
+    }
+
+
+    /**
      * В цикле ожидает подключения новых клиентов, регистрирует корректно обратившегося клиента
      * в своей "базе" клиентов и передает его данные в MessageBroker, который уже занимается
      * обработкой сообщений клиентов.
@@ -135,40 +171,15 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                // Ждем подключения клиента и получаем потоки для дальнейшей работы
-                SocketChannel socketChannel = serverChannel.accept();
-
-                System.out.println(Thread.currentThread().getName() + ": Подключился клиент...");
-
-                //установим socketChannel в блокирующий режим чтобы поток блокировался ожидая сообщения клиента
-                socketChannel.configureBlocking(true);
-
-                //читаем что передал клиент в качестве инициирующего сообщения
-                String msg = readClientMsg(socketChannel);
-
-                //первое сообщение от клиента при коннекте должно содержать "Connect" и через пробел имя
-                if (validateConnMsg(msg)) {
-                    String clientName = msg.split(" ")[1];
-                    writeMsg(clientName + " подключился", socketChannel);
-                    registerClient(clientName, socketChannel);
-                    //переводим socketChannel в неблокирующий режим для возможности работы через Selector
-                    socketChannel.configureBlocking(false);
-                    //регистрируем ключ в селекторе
-                    msgBroker.registerOnlineClient(socketChannel);
-                } else {
-                    writeMsg(CONNECTION_INIT_ERROR_MSG, socketChannel);
-                    socketChannel.close();
-                }
-                displayConnectedClients();
+                handleClient();
             }
         } catch (ClosedByInterruptException e) {
             System.out.println(Thread.currentThread().getName() + ": получена команда interrupt");
         } catch (IOException e) {
             System.out.println(e.getMessage());
             e.printStackTrace();
-        }
-        finally {
-            System.out.println(Thread.currentThread().getName()+ ": закрытие всех подключений клиентов");
+        } finally {
+            System.out.println(Thread.currentThread().getName() + ": закрытие всех подключений клиентов");
             closeAllConnections();
         }
     }
