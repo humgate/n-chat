@@ -59,7 +59,7 @@ public class ClientHandler implements Runnable {
      * Читает строку из канала клиента
      * @param socketChannel - канал клиента
      * @return строка переданная клиентом
-     * @throws IOException
+     * @throws IOException - выбрасывается операцией read канала в случае возникновения ошибки при чтении
      */
     public String readClientMsg(SocketChannel socketChannel) throws IOException {
         final ByteBuffer inputBuffer = ByteBuffer.allocate(Config.BUFFER_SIZE);
@@ -67,9 +67,8 @@ public class ClientHandler implements Runnable {
         // читаем данные из канала в буфер
         int bytesCount = socketChannel.read(inputBuffer);
             // переносим данные клиента из буфера в строку в нужной кодировке
-            final String msg = new String(inputBuffer.array(), 0, bytesCount,
-                    StandardCharsets.UTF_8);
-            return msg;
+        return new String(inputBuffer.array(), 0, bytesCount,
+                StandardCharsets.UTF_8);
         }
 
     /**
@@ -120,13 +119,14 @@ public class ClientHandler implements Runnable {
                     v.close();
                 }
             } catch (IOException e) {
+                System.out.println(Thread.currentThread().getName() + ": Ошибка при закрытии канала клиента");
                 e.printStackTrace();
             }
         });
     }
 
     /**
-     * В цикле ожидает подключения новых клиентов, регистрирует корректно подключившегося клиента
+     * В цикле ожидает подключения новых клиентов, регистрирует корректно обратившегося клиента
      * в своей "базе" клиентов и передает его данные в MessageBroker, который уже занимается
      * обработкой сообщений клиентов.
      * Метод оформлен как реализация Run() для того, чтобы его удобно было запустить в отдельном потоке

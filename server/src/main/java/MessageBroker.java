@@ -28,9 +28,10 @@ public class MessageBroker implements Runnable {
      * Регистрирует канал (клиента) как активный для прослушивания (регистрирует канал в селекторе).
      * Эта связь обеспечивает прослушивание всех зарегистрированных каналов на появление в них сообщений от клиентов
      * @param socketChannel - канал
-     * @throws ClosedChannelException
+     * @throws IOException - выбрасывается один из наследников IOException в случае проблем с каналом
+     * или селектором, которые не позволяют выполнить их регистрацию
      */
-    public void registerOnlineClient(SocketChannel socketChannel) throws ClosedChannelException {
+    public void registerOnlineClient(SocketChannel socketChannel) throws IOException   {
         socketChannel.register(selector, SelectionKey.OP_READ);
         System.out.println(Thread.currentThread().getName()+": текущий список ключей селектора");
         selector.keys().forEach(System.out::println);
@@ -67,29 +68,42 @@ public class MessageBroker implements Runnable {
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                System.out.println(Thread.currentThread().getName() + ": run");
+                //пишем просто для удобства отслеживания, что происходит на сервере
+                System.out.println(Thread.currentThread().getName() + ": listen circle begin in run()");
+                //Список всех каналов в селекторе. Отключеные будут иметь признак invalid
                 selector.keys().forEach(System.out::println);
-                System.out.println(selector.select());
+                //здесь поток блокируется пока, не появится что-то хотя бы от одного клиента
+                System.out.println("Число клиентов приславших сообщение: " + selector.select());
 
+                //здесь есть какая-то активность минимум от одного клиента, читаем, обрабатываем
+
+                //набор ключей клиентов, в каналах которых что-то произошло
                 Set<SelectionKey> selectedKeys = selector.selectedKeys();
                 Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
+                //проходим по набору ключей клиентов которые что-то прислали
                 while (keyIterator.hasNext()) {
                     SelectionKey key = keyIterator.next();
 
-                    if (key.isReadable()) {
-                        // a channel is ready for reading
+                    if (key.isReadable()) {//произошло именно появление сообщения от клиента
+                        //извлекаем клиентский SocketChannel из канала селектора явным приведением типа
                         SocketChannel clientSocket = (SocketChannel) key.channel();
+                        //находим по базе клиентов кто по этому каналу подключен
                         String clientName = clientHandler.getNameBySocketChannel(clientSocket);
                         try {
+                            //если клиент вдруг упал или недоступен здесь выбросится IOException
                             String clientMsg = clientHandler.readClientMsg(clientSocket);
+                            //создаем объект msg
                             Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
+                            //пишем сообщение в лог
                             Logger.writeMsgToFile(Config.SERVER_LOG_FILE,msg);
+                            //рассылаем его всем онлайн клиентам
                             notifyConnectedClients(msg);
                         } catch (IOException ex) {
-                            //убираем регистрацию в селекторе
+                            //убираем регистрацию канала в селекторе (то есть регистрацию клиента как онлайн)
                             key.cancel();
                             //проставляем в базе клиентов сокет клиента в null
                             clientHandler.registerClient(clientName, null);
+                            //запишем об этом
                             System.out.println(Thread.currentThread().getName() + " : отключился клиент " + clientName);
                         }
                     }
