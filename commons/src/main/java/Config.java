@@ -27,9 +27,6 @@ public class Config {
         String line;
 
         try {
-            File currentDirectory = new File(new File(".").getAbsolutePath());
-            System.out.println(currentDirectory.getCanonicalPath());
-
             br = new BufferedReader(new FileReader(SETTINGS_FILE));
             while ((line = br.readLine()) != null) {
                 keyValues.put(line.split(" ")[0], line.split(" ")[1]);
@@ -56,8 +53,4 @@ public class Config {
             throw new RuntimeException(e.getMessage());
         }
     }
-
-
-
-
 }

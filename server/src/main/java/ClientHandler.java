@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Выполняет подключение клиентов к чату. Обеспечивает нужные операции по работе с подключившимися
@@ -17,8 +16,6 @@ public class ClientHandler implements Runnable {
     //база подключившихся клиентов в мапе k=имя клиента, v=канал клиента
     private final HashMap<String, SocketChannel> clientsDB = new HashMap<>();
 
-    /* По хорошему вместо этого поля нужно сделать реализацию паттерна singletone,
-     * так сделано из-за экономии времени */
     private final ServerSocketChannel serverChannel;
 
     private final MessageBroker msgBroker;
@@ -108,6 +105,14 @@ public class ClientHandler implements Runnable {
      */
     public void displayClients() {
         clientsDB.entrySet().forEach(System.out::println);
+    }
+
+    /**
+     * Метод не нужен для работы приложения, но сильно упрощает написание unit тестов
+     * @return "база" клиентов
+     */
+    protected HashMap<String, SocketChannel> getClientsDB () {
+        return clientsDB;
     }
 
     /**
