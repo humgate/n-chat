@@ -81,9 +81,4 @@ public class ClientHandlerTest {
         }
         threadPool.shutdown();
     }
-
-
-
-
-
 }
