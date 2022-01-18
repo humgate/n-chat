@@ -10,7 +10,18 @@ import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
+/**
+ * Callable вариант сервера для тестов ClientHandler
+ */
 public class ServerAsCallable implements Callable<Integer> {
+    final int clientDbCount;
+    final String clientMessage;
+
+    public ServerAsCallable(int clientDbCount, String clientMessage) {
+        this.clientDbCount = clientDbCount;
+        this.clientMessage = clientMessage;
+    }
+
     @Override
     public Integer call() {
         Integer res = 0;
@@ -26,13 +37,16 @@ public class ServerAsCallable implements Callable<Integer> {
             //проверим что нет записей
             clientHandler.handleClient();
 
-            Assertions.assertEquals(clientHandler.getClientsDB().size(),1);
-            if (clientHandler.getClientsDB().size() != 1) res++;
+            Assertions.assertEquals(clientHandler.getClientsDB().size(),clientDbCount);
+            if (clientHandler.getClientsDB().size()!=clientDbCount) {
+                res++;
+            }
 
-            String client = clientHandler.getClientsDB().entrySet().stream().findAny().get().getKey();
-
-            Assertions.assertEquals(client, "testClientName");
-            if (!client.equals("testClientName")) res++;
+            if (clientDbCount != 0) {
+                String client = clientHandler.getClientsDB().entrySet().stream().findAny().get().getKey();
+                Assertions.assertEquals(client, clientMessage.split(" ")[1]);
+                if (!client.equals(clientMessage.split(" ")[1])) res++;
+            }
 
             serverChannel.close();
         } catch (IOException e) {
