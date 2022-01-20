@@ -54,40 +54,6 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Читает строку из канала клиента
-     * @param socketChannel - канал клиента
-     * @return строка переданная клиентом
-     * @throws IOException - выбрасывается операцией read канала в случае возникновения ошибки при чтении
-     */
-    public String readClientMsg(SocketChannel socketChannel) throws IOException {
-        final ByteBuffer inputBuffer = ByteBuffer.allocate(Config.BUFFER_SIZE);
-        if (!socketChannel.isConnected()) return null;
-        // читаем данные из канала в буфер
-        int bytesCount = socketChannel.read(inputBuffer);
-            // переносим данные клиента из буфера в строку в нужной кодировке
-        return new String(inputBuffer.array(), 0, bytesCount,
-                StandardCharsets.UTF_8);
-        }
-
-    /**
-     * Записывает строку в канал клиента
-     * @param msg - строка
-     * @param socketChannel - канал клиента
-     */
-    public void writeMsg(String msg, SocketChannel socketChannel) {
-        //заносим строку в выходной буфер
-        final ByteBuffer outputBuffer = ByteBuffer.wrap((msg).getBytes(StandardCharsets.UTF_8));
-
-        if (!socketChannel.isConnected()) return;
-        //пишем из буфера в канал
-        try {
-            socketChannel.write(outputBuffer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * Проверяет, является ли строка корректным сообщением клиента о подключении к чату
      * @param msg - строка для проверки
      * @return да или нет
@@ -136,7 +102,8 @@ public class ClientHandler implements Runnable {
      * в своей "базе" клиентов и передает его данные в MessageBroker, который уже занимается
      * обработкой сообщений клиентов.
      * @throws IOException
-     */
+     * Выделено в отдельный метод для целей тестирования.
+     * */
     public void handleClient() throws IOException {
         // Ждем подключения клиента и получаем потоки для дальнейшей работы
         SocketChannel socketChannel = serverChannel.accept();
@@ -147,24 +114,23 @@ public class ClientHandler implements Runnable {
         socketChannel.configureBlocking(true);
 
         //читаем что передал клиент в качестве инициирующего сообщения
-        String msg = readClientMsg(socketChannel);
+        String msg = ChannelReaderWriter.readClientMsg(socketChannel);
 
         //первое сообщение от клиента при конекте должно содержать "Connect" и через пробел имя
         if (validateConnMsg(msg)) {
             String clientName = msg.split(" ")[1];
-            writeMsg(clientName + " подключился", socketChannel);
+            ChannelReaderWriter.writeMsg(clientName + " подключился", socketChannel);
             registerClient(clientName, socketChannel);
             //переводим socketChannel в неблокирующий режим для возможности работы через Selector
             socketChannel.configureBlocking(false);
             //регистрируем ключ в селекторе
             msgBroker.registerOnlineClient(socketChannel);
         } else {
-            writeMsg(CONNECTION_INIT_ERROR_MSG, socketChannel);
+            ChannelReaderWriter.writeMsg(CONNECTION_INIT_ERROR_MSG, socketChannel);
             socketChannel.close();
         }
         displayClients();
     }
-
 
     /**
      * В цикле ожидает подключения новых клиентов, регистрирует корректно обратившегося клиента

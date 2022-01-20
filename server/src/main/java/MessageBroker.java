@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 /**
- * Выполняет работу с сообщениями от клиентов
+ * Содержит список онлайн каналов клиентов. Слушает клиентов и обрабатывает полученные от них сообщения
  */
 public class MessageBroker implements Runnable {
     private Selector selector;
@@ -54,65 +54,74 @@ public class MessageBroker implements Runnable {
      */
     public void notifyConnectedClients(Msg msg) {
         selector.keys().stream().filter(SelectionKey::isValid).forEach(k -> {
-            clientHandler.writeMsg(msg.getClient()+ ": " +msg.getMessage(),(SocketChannel) k.channel());
+            ChannelReaderWriter.writeMsg(msg.getClient()+ ": " +msg.getMessage(),(SocketChannel) k.channel());
         });
    }
 
     /**
-     * "Слушает" список онлайн клиентов, при получении сообщения от клиента записывает его в серверный лог и
-     * рассылает его всем онлайн клиентам. Обнаруживает отключение клиента, и обновляет статус подключения
+     * Выполняет одну итерацию "слушанья" списка онлайн клиентов на предмет появления от кого-то из них сообщения.
+     * При получении сообщений от клиентов записывает их в серверный лог и
+     * рассылает его всем онлайн клиентам и на этом заканчивается итерация.
+     * Так же обнаруживает отключение клиента, и обновляет статус подключения
      * клиента как у себя, так и в ClientHandler.
+     */
+   public void listenToClients() throws IOException {
+       //пишем просто для удобства отслеживания, что происходит на сервере
+       System.out.println(Thread.currentThread().getName() + ": listen circle begin in run()");
+       //Список всех каналов в селекторе. Отключенные будут иметь признак invalid
+       selector.keys().forEach(System.out::println);
+       //здесь поток блокируется, пока не появится что-то хотя бы от одного клиента
+       System.out.println("Число клиентов приславших сообщение: " + selector.select());
+
+       //здесь есть какая-то активность минимум от одного клиента, читаем, обрабатываем
+
+       //набор ключей клиентов, в каналах которых что-то произошло
+       Set<SelectionKey> selectedKeys = selector.selectedKeys();
+       Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
+       //проходим по набору ключей клиентов которые что-то прислали
+       while (keyIterator.hasNext()) {
+           SelectionKey key = keyIterator.next();
+
+           if (key.isReadable()) {//произошло именно появление сообщения от клиента
+               //извлекаем клиентский SocketChannel из канала селектора явным приведением типа
+               SocketChannel clientSocket = (SocketChannel) key.channel();
+               //находим по базе клиентов кто по этому каналу подключен
+               String clientName = clientHandler.getNameBySocketChannel(clientSocket);
+               try {
+                   //если клиент вдруг упал или недоступен здесь выбросится IOException
+                   String clientMsg = ChannelReaderWriter.readClientMsg(clientSocket);
+                   //создаем объект msg
+                   Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
+                   //пишем сообщение в лог
+                   Logger.writeMsgToFile(Config.SERVER_LOG_FILE,msg);
+                   //рассылаем его всем онлайн клиентам
+                   notifyConnectedClients(msg);
+               } catch (IOException ex) {
+                   //убираем регистрацию канала в селекторе (то есть регистрацию клиента как онлайн)
+                   key.cancel();
+                   //проставляем в базе клиентов сокет клиента в null
+                   clientHandler.registerClient(clientName, null);
+                   //запишем об этом
+                   System.out.println(Thread.currentThread().getName() + " : отключился клиент " + clientName);
+               }
+           }
+           keyIterator.remove();
+       }
+       selectedKeys.clear();
+   }
+
+    /**
+     * Запускаем слушанье клиентов в цикле.
      * Метод оформлен как реализация Run() для того, чтобы его удобно было запустить в отдельном потоке
      */
     @Override
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                //пишем просто для удобства отслеживания, что происходит на сервере
-                System.out.println(Thread.currentThread().getName() + ": listen circle begin in run()");
-                //Список всех каналов в селекторе. Отключеные будут иметь признак invalid
-                selector.keys().forEach(System.out::println);
-                //здесь поток блокируется пока, не появится что-то хотя бы от одного клиента
-                System.out.println("Число клиентов приславших сообщение: " + selector.select());
-
-                //здесь есть какая-то активность минимум от одного клиента, читаем, обрабатываем
-
-                //набор ключей клиентов, в каналах которых что-то произошло
-                Set<SelectionKey> selectedKeys = selector.selectedKeys();
-                Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
-                //проходим по набору ключей клиентов которые что-то прислали
-                while (keyIterator.hasNext()) {
-                    SelectionKey key = keyIterator.next();
-
-                    if (key.isReadable()) {//произошло именно появление сообщения от клиента
-                        //извлекаем клиентский SocketChannel из канала селектора явным приведением типа
-                        SocketChannel clientSocket = (SocketChannel) key.channel();
-                        //находим по базе клиентов кто по этому каналу подключен
-                        String clientName = clientHandler.getNameBySocketChannel(clientSocket);
-                        try {
-                            //если клиент вдруг упал или недоступен здесь выбросится IOException
-                            String clientMsg = clientHandler.readClientMsg(clientSocket);
-                            //создаем объект msg
-                            Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
-                            //пишем сообщение в лог
-                            Logger.writeMsgToFile(Config.SERVER_LOG_FILE,msg);
-                            //рассылаем его всем онлайн клиентам
-                            notifyConnectedClients(msg);
-                        } catch (IOException ex) {
-                            //убираем регистрацию канала в селекторе (то есть регистрацию клиента как онлайн)
-                            key.cancel();
-                            //проставляем в базе клиентов сокет клиента в null
-                            clientHandler.registerClient(clientName, null);
-                            //запишем об этом
-                            System.out.println(Thread.currentThread().getName() + " : отключился клиент " + clientName);
-                        }
-                    }
-                    keyIterator.remove();
-                }
-                selectedKeys.clear();
+                listenToClients();
             }
         } catch (IOException e) {
-            System.out.println(Thread.currentThread().getName() +": Исключение при попытке selector.select() ");
+            System.out.println(Thread.currentThread().getName() + ": Исключение в selector.select() ");
             e.printStackTrace();
         } finally {
             try {
