@@ -58,7 +58,7 @@ public class ClientHandler implements Runnable {
      * @param msg - строка для проверки
      * @return да или нет
      */
-    public boolean validateConnMsg(String msg) {
+    private boolean validateConnMsg(String msg) {
         return !(msg == null ||
                 msg.split(" ").length < 2 ||
                 !msg.split(" ")[0].equals(Config.CLIENT_CONNECTION_MSG_PFX) ||
@@ -69,7 +69,7 @@ public class ClientHandler implements Runnable {
     /**
      * Выводит в System.out сервера список всех клиентов подключавшихся в данной сессии сервера
      */
-    public void displayClients() {
+    private void displayClients() {
         clientsDB.entrySet().forEach(System.out::println);
     }
 
@@ -77,14 +77,14 @@ public class ClientHandler implements Runnable {
      * Метод не нужен для работы приложения, но сильно упрощает написание unit тестов
      * @return "база" клиентов
      */
-    protected HashMap<String, SocketChannel> getClientsDB () {
+    public HashMap<String, SocketChannel> getClientsDB () {
         return clientsDB;
     }
 
     /**
      * Закрывает все подключения клиентов
      */
-    public void closeAllConnections() {
+    private void closeAllConnections() {
         clientsDB.forEach((k, v) -> {
             try {
                 if (v!=null) {

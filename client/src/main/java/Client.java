@@ -93,6 +93,8 @@ public class Client {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            socketChannel.close();
         }
     }
 }

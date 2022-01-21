@@ -11,7 +11,7 @@ public class Logger {
      * Записывает сообщение в файл
      * @param logfile - файл
      * @param msg - сообщение
-     * @return
+     * @return - успешно или нет прошла операция
      */
     public static boolean writeMsgToFile(String logfile,Msg msg) {
         try {
@@ -28,7 +28,7 @@ public class Logger {
      * Записывает строку в файл
      * @param logfile - файл
      * @param str - строка
-     * @return
+     * @return успешно или нет прошла операция
      */
     public static boolean writeStringToFile(String logfile, String str) {
         try {
@@ -43,9 +43,10 @@ public class Logger {
     /**
      * Создает директорию если ее еще нет
      * @param logfile - директория
-     * @throws IOException
+     * @throws IOException в случае ошибки создания фолдера
      */
     public static void createLogDir(String logfile) throws IOException {
-        Files.createDirectories(Paths.get(logfile).getParent().getFileName());
+        Files.createDirectories(Paths.get(logfile).getParent());
+        System.out.println(Paths.get(logfile).getParent());
     }
 }

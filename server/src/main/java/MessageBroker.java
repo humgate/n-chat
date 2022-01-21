@@ -33,7 +33,7 @@ public class MessageBroker implements Runnable {
      */
     public void registerOnlineClient(SocketChannel socketChannel) throws IOException   {
         socketChannel.register(selector, SelectionKey.OP_READ);
-        System.out.println(Thread.currentThread().getName()+": текущий список ключей селектора");
+        System.out.println(Thread.currentThread().getName()+": текущий список ключей селектора:");
         selector.keys().forEach(System.out::println);
         /*
          * Практически выяснено, что если регистрация связи канала с селектором
@@ -52,7 +52,7 @@ public class MessageBroker implements Runnable {
      * Рассылает всем онлайн (SelectionKey::isValid) клиентам переданное сообщение
      * @param msg - Сообщение
      */
-    public void notifyConnectedClients(Msg msg) {
+    private void notifyConnectedClients(Msg msg) {
         selector.keys().stream().filter(SelectionKey::isValid).forEach(k -> {
             ChannelReaderWriter.writeMsg(msg.getClient()+ ": " +msg.getMessage(),(SocketChannel) k.channel());
         });
@@ -67,11 +67,13 @@ public class MessageBroker implements Runnable {
      */
    public void listenToClients() throws IOException {
        //пишем просто для удобства отслеживания, что происходит на сервере
-       System.out.println(Thread.currentThread().getName() + ": listen circle begin in run()");
+       System.out.println(Thread.currentThread().getName() +
+               ": итерация цикла прослушивания клиентов в run()");
        //Список всех каналов в селекторе. Отключенные будут иметь признак invalid
        selector.keys().forEach(System.out::println);
        //здесь поток блокируется, пока не появится что-то хотя бы от одного клиента
-       System.out.println("Число клиентов приславших сообщение: " + selector.select());
+       System.out.println(Thread.currentThread().getName() +
+               ": число клиентов приславших сообщение: " + selector.select());
 
        //здесь есть какая-то активность минимум от одного клиента, читаем, обрабатываем
 

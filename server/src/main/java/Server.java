@@ -13,6 +13,7 @@ import java.util.Scanner;
 public class Server {
     static Scanner scanner = new Scanner(System.in);
     public static void main(String[] args) throws IOException {
+        System.out.println(Config.SERVER_LOG_FILE);
         Logger.createLogDir(Config.SERVER_LOG_FILE);
         // Занимаем порт, определяя серверный сокет
         final ServerSocketChannel serverChannel = ServerSocketChannel.open();

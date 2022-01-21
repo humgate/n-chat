@@ -9,6 +9,7 @@ import java.util.concurrent.*;
  * Тесты устроены так:
  * Тест запускает Callable тред сервера и Callable трэд клиента. Клиент подключается к серверу и
  * отправляет строку конекта. Проверяется, что в базу клиентов записалось правильное имя клиента и оно одно.
+ * Если же строка конекта некорректная, то проверится что в базе клиентов не создалась запись
  *
  * Callable использовано по следующей причине: Runnable, как выяснилось экспериментально, не подходит для
  * этого, потому что исключения, выбрасываемые внутри треда, запущенного как Runnable, никак
@@ -17,7 +18,7 @@ import java.util.concurrent.*;
  * В случае c Callable, Future.get() выбрасывает ExecutionException, если внутри Callable треда что-то "упало".
  * Причем, если внутри Callable трэда "упал" именно какой-либо из Assertions, то ExecutionException будет
  * instanceof org.opentest4j.AssertionFailedError и мы в основном треде теста можем это проверить и уже
- * сами выкинуть Assertions.fail(). Таким образом юнит тест будет в результатах отражен правильно
+ * сами выкинуть Assertions.fail(). Таким образом результат юнит теста будет отражен правильно.
  */
 
 public class ClientHandlerTest {
@@ -31,9 +32,11 @@ public class ClientHandlerTest {
     void testHandleClientPositive() throws InterruptedException {
         //given
         //server
-        Callable<Integer> serverAsCallable = new ServerAsCallable(1, "Connect testClientName");
+        Callable<Integer> serverAsCallable = new ServerAsCallableWithClientHandler(
+                1, "Connect testClientName");
         //client
-        Callable<Integer> clientAsCallable = new ClientAsCallable("Connect testClientName");
+        Callable<Integer> clientAsCallable = new ClientWriterAsCallable(
+                "Connect testClientName");
 
         final ExecutorService threadPool = Executors.newFixedThreadPool(3);
         final Future<Integer> serverTask = threadPool.submit(serverAsCallable);
@@ -59,11 +62,12 @@ public class ClientHandlerTest {
      */
     @Test
     void testHandleClientNegative() throws InterruptedException {
+        System.out.println(System.getProperty("user.home"));
         //given
         //server
-        Callable<Integer> serverAsCallable = new ServerAsCallable(0, null);
+        Callable<Integer> serverAsCallable = new ServerAsCallableWithClientHandler(0, null);
         //client
-        Callable<Integer> clientAsCallable = new ClientAsCallable("testClientName");
+        Callable<Integer> clientAsCallable = new ClientWriterAsCallable("testClientName");
 
         final ExecutorService threadPool = Executors.newFixedThreadPool(3);
         final Future<Integer> serverTask = threadPool.submit(serverAsCallable);

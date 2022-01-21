@@ -7,10 +7,10 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 
-public class ClientAsCallable implements Callable<Integer> {
+public class ClientWriterAsCallable implements Callable<Integer> {
     private final String clientMessage;
 
-    public ClientAsCallable(String clientMessage) {
+    public ClientWriterAsCallable(String clientMessage) {
         this.clientMessage = clientMessage;
     }
 
@@ -23,7 +23,8 @@ public class ClientAsCallable implements Callable<Integer> {
             clientChannel.configureBlocking(true);
             ByteBuffer outputBuffer = ByteBuffer.wrap((clientMessage).getBytes(StandardCharsets.UTF_8));
             clientChannel.write(outputBuffer);
-        } catch (IOException e) {
+            clientChannel.close();
+            } catch (IOException e) {
             e.printStackTrace();
             Assertions.fail();
             res++;

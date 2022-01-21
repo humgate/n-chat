@@ -2,6 +2,7 @@ import org.junit.jupiter.api.Assertions;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.AlreadyBoundException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Callable;
@@ -13,11 +14,11 @@ import static org.mockito.Mockito.mock;
 /**
  * Callable вариант сервера для тестов ClientHandler
  */
-public class ServerAsCallable implements Callable<Integer> {
+public class ServerAsCallableWithClientHandler implements Callable<Integer> {
     final int clientDbCount;
     final String clientMessage;
 
-    public ServerAsCallable(int clientDbCount, String clientMessage) {
+    public ServerAsCallableWithClientHandler(int clientDbCount, String clientMessage) {
         this.clientDbCount = clientDbCount;
         this.clientMessage = clientMessage;
     }
@@ -27,16 +28,22 @@ public class ServerAsCallable implements Callable<Integer> {
         Integer res = 0;
         try {
             ServerSocketChannel serverChannel = ServerSocketChannel.open();
-            serverChannel.bind(new InetSocketAddress("localhost", 23334));
+            try {
+                serverChannel.bind(new InetSocketAddress("localhost", 23334));
+            } catch (AlreadyBoundException e) {
+                System.out.println("Socket already bound, skipping binding");
+            }
 
             //замокаем MessageBroker
             MessageBroker messageBroker = mock(MessageBroker.class);
             doNothing().when(messageBroker).registerOnlineClient(isA(SocketChannel.class));
 
             ClientHandler clientHandler = new ClientHandler(serverChannel, messageBroker);
+
             //проверим что нет записей
             clientHandler.handleClient();
 
+            //проверим что нет записей
             Assertions.assertEquals(clientHandler.getClientsDB().size(),clientDbCount);
             if (clientHandler.getClientsDB().size()!=clientDbCount) {
                 res++;
