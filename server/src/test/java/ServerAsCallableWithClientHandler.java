@@ -26,6 +26,12 @@ public class ServerAsCallableWithClientHandler implements Callable<Integer> {
 
     @Override
     public Integer call() {
+        try {
+            Logger.createLogDir(Config.SERVER_LOG_FILE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         Integer res = 0;
         try {
             ServerSocketChannel serverChannel = ServerSocketChannel.open();

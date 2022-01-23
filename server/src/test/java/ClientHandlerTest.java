@@ -61,7 +61,6 @@ public class ClientHandlerTest {
      */
     @Test
     void testHandleClientNegative() {
-        //given
         //server
         Callable<Integer> serverAsCallable = new ServerAsCallableWithClientHandler(0, null);
         //client

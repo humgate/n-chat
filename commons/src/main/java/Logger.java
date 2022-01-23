@@ -47,6 +47,7 @@ public class Logger {
      */
     public static void createLogDir(String logfile) throws IOException {
         Files.createDirectories(Paths.get(logfile).getParent());
-        System.out.println(Paths.get(logfile).getParent());
+        System.out.println(Thread.currentThread().getName()+ ": folder created: " +
+                Paths.get(logfile).getParent());
     }
 }

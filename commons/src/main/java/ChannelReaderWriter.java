@@ -37,7 +37,4 @@ public class ChannelReaderWriter {
         return new String(inputBuffer.array(), 0, bytesCount,
                 StandardCharsets.UTF_8);
     }
-
-
-
 }
