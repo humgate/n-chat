@@ -1,0 +1,40 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+actor User
+participant clientSender as "Client Main\n(Sender)"
+participant clientListener as "Client\nListener"
+boundary Server
+participant clientHandler as "Server\nClientHandler"
+participant messageBroker as "Server\nMessageBroker"
+
+autonumber
+
+autonumber
+User -> clientSender: Launch
+activate clientSender
+clientSender -> Server: Connect
+clientListener -> clientListener: Listen
+activate clientListener
+Server -> clientHandler: Validate
+clientHandler -> clientHandler: Validate\nconnection
+activate clientHandler
+clientHandler -> messageBroker: Register client
+activate messageBroker
+messageBroker -> messageBroker: Register in\nlistener
+User -> clientSender: Type message
+clientSender -> Server: New message
+Server -> messageBroker: Process
+messageBroker -> messageBroker: Save to log
+messageBroker -> clientListener: Broadcast send
+clientListener -> User: display
+clientListener -> clientListener: Save to log
+User -> clientSender: exit
+clientSender ->clientListener: Stop
+deactivate clientListener
+messageBroker -> clientSender: Detect disconnect
+messageBroker -> messageBroker: Unregister in listener
+messageBroker -> clientHandler: Remove
+deactivate messageBroker
+deactivate clientHandler
+clientSender -> User: Exit
+@enduml
