@@ -3,11 +3,22 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.*;
 
+/**
+ * Тест для MessageBroker.
+ * Создает 4 Callable потока: 1 - сервер, 2 - пишущий сообщение1 клиент, 3 - пишущий сообщение2 клиент,
+ * 4 - читающий клиент. Сервер сначала всех 3 клиентов подключает, а затем два раза запускает
+ * MessageBroker.listenToClients() - основной метод сервера по обработке сообщение клиентов.
+ * 2 раза необходимо запускать listenToClients(), потому что первый раз селектор может не увидеть сообщения клиентов
+ * если они зарегистрировались после запуска прослушивание селектора.
+ * В тесте дожидаемся когда Futre.get читающего клиента вернет прочитанные им сообщения и сравним с теми,
+ * что передавали клиент 1 и 2.
+ *
+ */
 public class MessageBrokerTest {
     @Test
     void testListenToClients() throws InterruptedException {
         //given
-        String result = null;
+        String result;
         //сервер
         Callable<Integer> serverAsCallable = new ServerAsCallableWithMessageBroker();
 
@@ -32,7 +43,16 @@ public class MessageBrokerTest {
             clientTask2.get();
             result = clientTask3.get();
 
-            System.out.println(result);
+            //вычленяем сам текст сообщения 1
+            String msg1 = result.trim().split(" ")[1];
+            System.out.println(msg1);
+
+            //вычленяем сам текст сообщения 2
+            String msg2 = result.trim().split(" ")[3];
+
+            //проверяем что это сообщения от первых двух клиентов писателей
+            Assertions.assertTrue(msg1.equals("testMessage1") || msg1.equals("testMessage2"));
+            Assertions.assertTrue(msg2.equals("testMessage1") || msg2.equals("testMessage2"));
 
         } catch (ExecutionException e) {
             if (!(e.getCause() instanceof org.opentest4j.AssertionFailedError)) {

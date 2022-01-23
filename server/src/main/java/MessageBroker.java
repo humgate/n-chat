@@ -92,17 +92,22 @@ public class MessageBroker implements Runnable {
                try {
                    //если клиент вдруг упал или недоступен здесь выбросится IOException
                    String clientMsg = ChannelReaderWriter.readClientMsg(clientSocket);
+
                    //создаем объект msg
                    Msg msg = new Msg(clientName,clientMsg, LocalDateTime.now());
+
                    //пишем сообщение в лог
                    Logger.writeMsgToFile(Config.SERVER_LOG_FILE,msg);
+
                    //рассылаем его всем онлайн клиентам
                    notifyConnectedClients(msg);
                } catch (IOException ex) {
                    //убираем регистрацию канала в селекторе (то есть регистрацию клиента как онлайн)
                    key.cancel();
+
                    //проставляем в базе клиентов сокет клиента в null
                    clientHandler.registerClient(clientName, null);
+
                    //запишем об этом
                    System.out.println(Thread.currentThread().getName() + " : отключился клиент " + clientName);
                }

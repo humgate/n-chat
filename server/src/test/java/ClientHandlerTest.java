@@ -11,14 +11,15 @@ import java.util.concurrent.*;
  * отправляет строку конекта. Проверяется, что в базу клиентов записалось правильное имя клиента и оно одно.
  * Если же строка конекта некорректная, то проверится что в базе клиентов не создалась запись
  *
- * Callable использовано по следующей причине: Runnable, как выяснилось экспериментально, не подходит для
+ * Callable использовано в данном тесте, несмотря на то что, реально нам не нужно ничего получать от потоков
+ * по следующей причине: Runnable, как выяснилось экспериментально, не подходит для
  * этого, потому что исключения, выбрасываемые внутри треда, запущенного как Runnable, никак
- * не пробрасываются в тред, запустивший Runnable трэд. А Assertions в тестах как раз выбрасывают,
+ * не пробрасываются в тред, запустивший Runnable трэд. А Assertions в тестах внутри этих потоков как раз выбрасывают,
  * исключение AssertionFailedError и для результата теста нужно знать, выброшено исключение или нет.
  * В случае c Callable, Future.get() выбрасывает ExecutionException, если внутри Callable треда что-то "упало".
  * Причем, если внутри Callable трэда "упал" именно какой-либо из Assertions, то ExecutionException будет
  * instanceof org.opentest4j.AssertionFailedError и мы в основном треде теста можем это проверить и уже
- * сами выкинуть Assertions.fail(). Таким образом результат юнит теста будет отражен правильно.
+ * сами выкинуть Assertions.fail(). Таким образом результат теста будет отражен правильно.
  */
 
 public class ClientHandlerTest {
@@ -26,10 +27,9 @@ public class ClientHandlerTest {
      * Проверим позитивный сценарий работы handleClient().
      * Проверим, что запись о клиенте сохранилась в "базу"
      * Проверим, что имя клиента в сохраненной записи верное - то, которое передал клиент
-     * @throws InterruptedException
      */
     @Test
-    void testHandleClientPositive() throws InterruptedException {
+    void testHandleClientPositive()  {
         //given
         //server
         Callable<Integer> serverAsCallable = new ServerAsCallableWithClientHandler(
@@ -45,7 +45,7 @@ public class ClientHandlerTest {
         try {
             serverTask.get();
             clientTask.get();
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | InterruptedException e) {
             if (!(e.getCause() instanceof org.opentest4j.AssertionFailedError)) {
                 Assertions.fail("Возникли ошибки при взаимодействии потоков клиента и сервера");
             }
@@ -58,11 +58,9 @@ public class ClientHandlerTest {
     /**
      * Проверим негативный сценарий работы handleClient().
      * Проверим, что при некорректном сообщении подключения клиента, запись о клиенте не сохранилась в "базу"
-     * @throws InterruptedException
      */
     @Test
-    void testHandleClientNegative() throws InterruptedException {
-        System.out.println(System.getProperty("user.home"));
+    void testHandleClientNegative() {
         //given
         //server
         Callable<Integer> serverAsCallable = new ServerAsCallableWithClientHandler(0, null);
@@ -76,7 +74,7 @@ public class ClientHandlerTest {
         try {
             serverTask.get();
             clientTask.get();
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | InterruptedException e) {
             if (!(e.getCause() instanceof org.opentest4j.AssertionFailedError)) {
                 Assertions.fail("Возникли ошибки при взаимодействии потоков клиента и сервера");
             }

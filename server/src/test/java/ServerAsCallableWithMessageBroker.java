@@ -13,6 +13,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Callable вариант сервера для тестов MessageBroker
+ * с моками ClientHandler
  */
 public class ServerAsCallableWithMessageBroker implements Callable<Integer> {
     @Override
@@ -23,19 +24,21 @@ public class ServerAsCallableWithMessageBroker implements Callable<Integer> {
             serverChannel.bind(new InetSocketAddress("localhost", 23334));
             MessageBroker messageBroker = new MessageBroker();
             ClientHandler clientHandler = mock(ClientHandler.class);
-            Mockito.when(clientHandler.getNameBySocketChannel(isA(SocketChannel.class))).thenReturn("a client");
+            Mockito.when(clientHandler.getNameBySocketChannel(isA(SocketChannel.class))).thenReturn("someclient");
             Mockito.doNothing().when(clientHandler).registerClient(isA(String.class), isA(SocketChannel.class));
             messageBroker.setClientHandler(clientHandler);
 
             //ждем трех клиентов
             for (int i = 0; i < 3; i++) {
                 SocketChannel socketChannel = serverChannel.accept();
-                System.out.println("Подключился клиент");
+                System.out.println(Thread.currentThread()+" Подключился клиент");
                 socketChannel.configureBlocking(false);
                 messageBroker.registerOnlineClient(socketChannel);
-                System.out.println("Зарегистрирован клиент");
+                System.out.println(Thread.currentThread()+" Клиент зарегистрирован в селекторе");
             }
-            messageBroker.run();
+            for (int i = 0; i < 2; i++) {
+                messageBroker.listenToClients();
+            }
             serverChannel.close();
         } catch (IOException e) {
             e.printStackTrace();

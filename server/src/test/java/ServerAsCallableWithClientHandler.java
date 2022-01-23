@@ -13,6 +13,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * Callable вариант сервера для тестов ClientHandler
+ * с моками MessageBroker
  */
 public class ServerAsCallableWithClientHandler implements Callable<Integer> {
     final int clientDbCount;
