@@ -10,7 +10,7 @@ participant messageBroker as "Server\nMessageBroker"
 autonumber
 
 autonumber
-User -> clientSender: Launch
+User -> clientSender: Type user name
 activate clientSender
 clientSender -> Server: Connect
 clientListener -> clientListener: Listen
